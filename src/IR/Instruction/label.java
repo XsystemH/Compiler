@@ -15,6 +15,7 @@ public class label extends Instr{
 
     @Override
     public String getString() {
+        if (num == -1) return info + ":";
         return "label_" + info + "_" + num + ":";
     }
 
@@ -24,6 +25,7 @@ public class label extends Instr{
     }
 
     public String getLabel() {
+        if (num == -1) return "%" + info;
         return "%label_" + info + "_" + num;
     }
 }

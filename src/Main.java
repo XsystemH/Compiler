@@ -4,6 +4,11 @@ import Backend.IRBuilder;
 import Frontend.ASTBuilder;
 import Frontend.SemanticChecker;
 import Frontend.SymbolCollector;
+import IR.Instruction.Instr;
+import IR.funcDef;
+import IR.mainFn;
+import Opt.CFG;
+import Opt.NASMBuilder;
 import Parser.*;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
@@ -14,13 +19,14 @@ import util.error.error;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.HashSet;
 
 public class Main {
     public static void main(String[] args) throws IOException {
-//        System.out.println("Hello Compiler!");
-
-//        String filename = "testcases/sema/array-package/array-1.mx";
+//        String filename = "testcases/codegen/t17.mx";
 //        InputStream input = new FileInputStream(filename);
+//        OutputStream IROut = new FileOutputStream("output.ll");
 //        OutputStream output = new FileOutputStream("output.s");
         InputStream input = System.in;
         OutputStream output = System.out;
@@ -40,19 +46,61 @@ public class Main {
             new SemanticChecker(gScope).visit(ast);
             IRBuilder irBuilder = new IRBuilder(gScope);
             irBuilder.visit(ast);
-//            output.write(irBuilder.strPreDef.getString().getBytes(StandardCharsets.UTF_8));
-//            output.write(irBuilder.program.getString().getBytes(StandardCharsets.UTF_8));
-            irBuilder.strPreDef.getString();
-            irBuilder.program.getString();
-            ASMBuilder asmBuilder = new ASMBuilder(irBuilder);
-            asmBuilder.visitProgram();
-            output.write(asmBuilder.getString().getBytes(StandardCharsets.UTF_8));
+            for (Instr instr : irBuilder.program.instrs) {
+                if (instr instanceof funcDef func) func.autoFill();
+            }
+            // Mem2Reg
+            for (Instr instr : irBuilder.program.instrs) {
+                if (instr instanceof funcDef func) {
+                    func.cfg = new CFG(func);
+                    func.cfg.Mem2Reg();
+                }
+                if (instr instanceof mainFn main) {
+                    main.init.cfg = new CFG(main.init);
+                    main.init.cfg.Mem2Reg();
+                }
+            }
+//            IROut.write(irBuilder.strPreDef.getString().getBytes(StandardCharsets.UTF_8));
+//            IROut.write(irBuilder.program.getString().getBytes(StandardCharsets.UTF_8));
+            // rm phi
+            for (Instr instr : irBuilder.program.instrs) {
+                if (instr instanceof funcDef func) {
+                    func.cfg.rmPhi();
+                    func.cfg.linear_scan();
+                }
+                if (instr instanceof mainFn main) {
+                    main.init.cfg.rmPhi();
+                    main.init.cfg.linear_scan();
+                }
+            }
+//            IROut.write(irBuilder.strPreDef.getString().getBytes(StandardCharsets.UTF_8));
+//            IROut.write(irBuilder.program.getString().getBytes(StandardCharsets.UTF_8));
+
+            NASMBuilder nasmBuilder = new NASMBuilder(irBuilder);
+
+//            String builtin = "src/Backend/builtin/builtin.s";
+//            BufferedReader reader = new BufferedReader(new FileReader(builtin));
+//            String line;
+//            while ((line = reader.readLine()) != null) {
+//                System.out.println(line);
+//            }
+
+//            HashSet<String> wrong = new HashSet<>();
+//            for (String reg : nasmBuilder.textSection.functions.get(1).virtualReg.keySet()) {
+//                if (!((funcDef)irBuilder.program.instrs.get(1)).cfg.activePeriods.keySet().contains(reg)) {
+//                    wrong.add(reg);
+//                }
+//            }
+
+            output.write(nasmBuilder.getString().getBytes(StandardCharsets.UTF_8));
+//            ASMBuilder asmBuilder = new ASMBuilder(irBuilder);
+//            asmBuilder.visitProgram();
+//            output.write(asmBuilder.getString().getBytes(StandardCharsets.UTF_8));
         }
         catch (error e) {
             System.out.println(e.message);
             System.exit(1);
         }
 //        System.out.println("Successfully parsed!");
-        return;
     }
 }
