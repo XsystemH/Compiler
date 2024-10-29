@@ -64,10 +64,12 @@ public class Main {
             for (Instr instr : irBuilder.program.instrs) {
                 if (instr instanceof funcDef func) {
                     func.cfg.rmPhi();
+                    func.cfg.DCE();
                     func.cfg.linear_scan();
                 }
                 if (instr instanceof mainFn main) {
                     main.init.cfg.rmPhi();
+                    main.init.cfg.DCE();
                     main.init.cfg.linear_scan();
                 }
             }
