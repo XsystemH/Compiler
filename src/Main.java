@@ -46,49 +46,44 @@ public class Main {
             new SemanticChecker(gScope).visit(ast);
             IRBuilder irBuilder = new IRBuilder(gScope);
             irBuilder.visit(ast);
-            try {
-                for (Instr instr : irBuilder.program.instrs) {
-                    if (instr instanceof funcDef func) func.autoFill();
+            for (Instr instr : irBuilder.program.instrs) {
+                if (instr instanceof funcDef func) func.autoFill();
+            }
+            // Mem2Reg
+            for (Instr instr : irBuilder.program.instrs) {
+                if (instr instanceof funcDef func) {
+                    func.cfg = new CFG(func);
+                    func.cfg.Mem2Reg();
                 }
-                // Mem2Reg
-                for (Instr instr : irBuilder.program.instrs) {
-                    if (instr instanceof funcDef func) {
-                        func.cfg = new CFG(func);
-                        func.cfg.Mem2Reg();
-                    }
-                    if (instr instanceof mainFn main) {
-                        main.init.cfg = new CFG(main.init);
-                        main.init.cfg.Mem2Reg();
-                    }
+                if (instr instanceof mainFn main) {
+                    main.init.cfg = new CFG(main.init);
+                    main.init.cfg.Mem2Reg();
                 }
+            }
 //            IROut.write(irBuilder.strPreDef.getString().getBytes(StandardCharsets.UTF_8));
 //            IROut.write(irBuilder.program.getString().getBytes(StandardCharsets.UTF_8));
-                // rm phi
-                for (Instr instr : irBuilder.program.instrs) {
-                    if (instr instanceof funcDef func) {
-                        func.cfg.rmPhi();
-                        func.cfg.linear_scan();
-                    }
-                    if (instr instanceof mainFn main) {
-                        main.init.cfg.rmPhi();
-                        main.init.cfg.linear_scan();
-                    }
+            // rm phi
+            for (Instr instr : irBuilder.program.instrs) {
+                if (instr instanceof funcDef func) {
+                    func.cfg.rmPhi();
+                    func.cfg.linear_scan();
                 }
-
-                NASMBuilder nasmBuilder = new NASMBuilder(irBuilder);
-
-                String builtin = "src/Backend/builtin/builtin.s";
-                BufferedReader reader = new BufferedReader(new FileReader(builtin));
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    System.out.println(line);
+                if (instr instanceof mainFn main) {
+                    main.init.cfg.rmPhi();
+                    main.init.cfg.linear_scan();
                 }
-
-                output.write(nasmBuilder.getString().getBytes(StandardCharsets.UTF_8));
             }
-            catch (error e) {
 
+            NASMBuilder nasmBuilder = new NASMBuilder(irBuilder);
+
+            String builtin = "src/Backend/builtin/builtin.s";
+            BufferedReader reader = new BufferedReader(new FileReader(builtin));
+            String line;
+            while ((line = reader.readLine()) != null) {
+                System.out.println(line);
             }
+
+            output.write(nasmBuilder.getString().getBytes(StandardCharsets.UTF_8));
         }
         catch (error e) {
             System.out.println(e.message);
