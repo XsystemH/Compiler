@@ -173,7 +173,7 @@ public class NASMBuilder {
         if (irFunc.className != null)
             func.name = irFunc.className + ".." + irFunc.name;
         else func.name = irFunc.name;
-        int size = 92 + (irFunc.params.size() + irFunc.cfg.activePeriods.size() - irFunc.cfg.reg_map.size()) * 4;
+        int size = 92 + (irFunc.params.size() + irFunc.cfg.varNum - irFunc.cfg.succeedNum) * 4;
         int maxSpiltArgs = 0;
         for (BasicBlock block : irFunc.cfg.rpo)
             for (Instr instr : block.Instrs)
@@ -198,8 +198,18 @@ public class NASMBuilder {
         func.curBlock.instrs.addAll(Imm("add", "sp", "sp", -func.spOffset));
         func.curBlock.instrs.addAll(Sw("ra", func.alloc(4), "sp"));
 
+        HashMap<Integer, Integer> moveMap = new HashMap<>();
+        HashMap<String, Integer> loadList = new HashMap<>();
         for (int i = 0; i < irFunc.params.size(); i++) {
-            if (i < 8) {
+            if (irFunc.cfg.reg_map.containsKey("%" + irFunc.params.get(i))) {
+                if (i < 8) {
+                    moveMap.put(i, irFunc.cfg.reg_map.get("%" + irFunc.params.get(i)));
+                }
+                else {
+                    loadList.put("%" + irFunc.params.get(i), func.spOffset + (i - 8) * 4);
+                }
+            }
+            else if (i < 8) {
                 int offset = func.alloc(4);
                 func.curBlock.instrs.addAll(Sw("a" + i, offset, "sp"));
                 func.putVirtualReg("%" + irFunc.params.get(i), offset);
@@ -207,6 +217,13 @@ public class NASMBuilder {
             else {
                 func.putVirtualReg("%" + irFunc.params.get(i), func.spOffset + (i - 8) * 4);
             }
+        }
+
+        DA da = new DA(moveMap);
+        func.curBlock.instrs.addAll(da.getInstr());
+
+        for (String arg : loadList.keySet()) {
+            func.curBlock.instrs.addAll(Lw(physicName(irFunc.cfg.reg_map.get(arg)), loadList.get(arg), "sp"));
         }
 
         for (BasicBlock irBlock : irFunc.cfg.rpo) {
