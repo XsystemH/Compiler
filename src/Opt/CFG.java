@@ -726,7 +726,7 @@ public class CFG {
         return instrs;
     }
 
-    private BitSet free_regs = new BitSet(20);
+    private BitSet free_regs = new BitSet(22);
     private HashSet<String> occupied = new HashSet<>();
 
     private void eviction(int l) {
@@ -771,7 +771,7 @@ public class CFG {
 
     public void linear_scan() {
         activeAnalysis();
-        free_regs.set(0, 20);
+        free_regs.set(0, 22);
 
         for (String apStr : sortedAP) {
             ActivePeriod ap = activePeriods.get(apStr);
