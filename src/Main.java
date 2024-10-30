@@ -85,12 +85,12 @@ public class Main {
 
             NASMBuilder nasmBuilder = new NASMBuilder(irBuilder);
 
-            String builtin = "src/Backend/builtin/builtin.s";
-            BufferedReader reader = new BufferedReader(new FileReader(builtin));
-            String line;
-            while ((line = reader.readLine()) != null) {
-                System.out.println(line);
-            }
+//            String builtin = "src/Backend/builtin/builtin.s";
+//            BufferedReader reader = new BufferedReader(new FileReader(builtin));
+//            String line;
+//            while ((line = reader.readLine()) != null) {
+//                System.out.println(line);
+//            }
 
             output.write(nasmBuilder.getString().getBytes(StandardCharsets.UTF_8));
         }
