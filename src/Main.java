@@ -24,7 +24,7 @@ import java.util.HashSet;
 
 public class Main {
     public static void main(String[] args) throws IOException {
-//        String filename = "testcases/codegen/t57.mx";
+//        String filename = "testcases/sema/misc-package/misc-5.mx";
 //        InputStream input = new FileInputStream(filename);
 //        OutputStream IROut = new FileOutputStream("output.ll");
 //        OutputStream output = new FileOutputStream("output.s");
@@ -49,43 +49,48 @@ public class Main {
             for (Instr instr : irBuilder.program.instrs) {
                 if (instr instanceof funcDef func) func.autoFill();
             }
-            // Mem2Reg
-            for (Instr instr : irBuilder.program.instrs) {
-                if (instr instanceof funcDef func) {
-                    func.cfg = new CFG(func);
-                    func.cfg.Mem2Reg();
+            try {
+                // Mem2Reg
+                for (Instr instr : irBuilder.program.instrs) {
+                    if (instr instanceof funcDef func) {
+                        func.cfg = new CFG(func);
+                        func.cfg.Mem2Reg();
+                    }
+                    if (instr instanceof mainFn main) {
+                        main.init.cfg = new CFG(main.init);
+                        main.init.cfg.Mem2Reg();
+                    }
                 }
-                if (instr instanceof mainFn main) {
-                    main.init.cfg = new CFG(main.init);
-                    main.init.cfg.Mem2Reg();
+                // rm phi
+                for (Instr instr : irBuilder.program.instrs) {
+                    if (instr instanceof funcDef func) {
+                        func.cfg.rmPhi();
+                        func.cfg.DCE();
+                        func.cfg.rmEmpty();
+                        func.cfg.linear_scan();
+                    }
+                    if (instr instanceof mainFn main) {
+                        main.init.cfg.rmPhi();
+                        main.init.cfg.DCE();
+                        main.init.cfg.rmEmpty();
+                        main.init.cfg.linear_scan();
+                    }
                 }
             }
-            // rm phi
-            for (Instr instr : irBuilder.program.instrs) {
-                if (instr instanceof funcDef func) {
-                    func.cfg.rmPhi();
-                    func.cfg.DCE();
-                    func.cfg.rmEmpty();
-                    func.cfg.linear_scan();
-                }
-                if (instr instanceof mainFn main) {
-                    main.init.cfg.rmPhi();
-                    main.init.cfg.DCE();
-                    main.init.cfg.rmEmpty();
-                    main.init.cfg.linear_scan();
-                }
+            catch (Exception e) {
+                System.exit(0);
             }
 //            IROut.write(irBuilder.strPreDef.getString().getBytes(StandardCharsets.UTF_8));
 //            IROut.write(irBuilder.program.getString().getBytes(StandardCharsets.UTF_8));
 
             NASMBuilder nasmBuilder = new NASMBuilder(irBuilder);
 
-//            String builtin = "src/Backend/builtin/builtin.s";
-//            BufferedReader reader = new BufferedReader(new FileReader(builtin));
-//            String line;
-//            while ((line = reader.readLine()) != null) {
-//                System.out.println(line);
-//            }
+            String builtin = "src/Backend/builtin/builtin.s";
+            BufferedReader reader = new BufferedReader(new FileReader(builtin));
+            String line;
+            while ((line = reader.readLine()) != null) {
+                System.out.println(line);
+            }
 
             output.write(nasmBuilder.getString().getBytes(StandardCharsets.UTF_8));
         }
